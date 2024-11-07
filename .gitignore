@@ -1,0 +1,5 @@
+# Ignore all files in the pycash directory
+__pycache__
+
+# Ignore .api file containing API keys
+.api_token
