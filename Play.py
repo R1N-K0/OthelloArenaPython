@@ -4,7 +4,7 @@ import OthelloAction
 import AuthCheck
 import OthelloLogic
 
-base_url = "http://tdu-othello.xyz/api/"
+base_url = "http://tdu-othello.com/api/"
 headers = AuthCheck.auth_check(base_url)
 
 r = requests.post(base_url + "where", headers=headers)
