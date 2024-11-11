@@ -19,10 +19,8 @@ def getAction(board,moves):
 	print("自分が石を置ける場所のリスト")
 	print(moves)
 
-	#渡されたMovesの中からランダムで返り値として返却する。
-	index = random.randrange(len(moves))
-	next_move = moves[index]
-
+	
+	next_move = max_stone(board,moves)
 	print("次に石を置く予定の場所")
 	print(next_move)
 
@@ -43,4 +41,20 @@ def getAction(board,moves):
 	print("対戦相手が次に石を置く予定の場所")
 	print(opponents_moves)
 
+	return next_move
+
+def max_stone(board,moves):
+	max = 0
+	next_move = []
+	for move in moves:
+		stone_count = 0
+		next_board = OthelloLogic.execute(copy.deepcopy(board),move,1,8)
+
+		for row in next_board:
+			stone_count += row.count(1)
+
+		if stone_count > max:
+			max = stone_count
+			next_move = move
+	
 	return next_move
