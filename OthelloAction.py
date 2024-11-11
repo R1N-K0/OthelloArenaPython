@@ -1,4 +1,7 @@
 import random
+import copy
+import OthelloLogic
+import numpy as np
 
 """
 引数について
@@ -11,6 +14,49 @@ moves:現在の合法手の一覧
 """
 
 def getAction(board,moves):
-	#渡されたMovesの中からランダムで返り値として返却する。
-	index = random.randrange(len(moves))
-	return moves[index]
+	print("現在の盤面")
+	print(board)
+
+	print("自分が石を置ける場所のリスト")
+	print(moves)
+
+	
+	next_move = min_stone(board,moves)
+	print("次に石を置く予定の場所")
+	print(next_move)
+
+	# next_moveに石を置いた場合の次の盤面を取得する
+	# OthelloLogic.executeの第1引数は現在の盤面、第2引数はこれから石を置く場所、
+	# 第3引数は石を置く人が自分のAIなら1で、対戦相手なら-1に設定、
+	# 第4引数は盤面の大きさで8×8なら8を設定
+	next_board = OthelloLogic.execute(copy.deepcopy(board),next_move,1,8)
+
+	print("次の盤面")
+	print(next_board)
+
+	# 次の盤面で対戦相手が石を置くことができる場所のリスト
+	# OthelloLogic.getMovesの第1引数は盤面、第２引数は対戦相手なら-1、自分なら1
+	# 第3引数は盤面の大きさで8×8なら8を設定
+	opponents_moves = OthelloLogic.getMoves(next_board,-1,8)
+
+	print("対戦相手が次に石を置く予定の場所")
+	print(opponents_moves)
+
+	return next_move
+
+def min_stone(board, moves):
+	min_stones = 64
+	next_move = None
+	board_np = np.array(board)
+
+	for move in moves:
+		next_board = OthelloLogic.execute(copy.deepcopy(board),move,1,8)
+		next_board_np = np.array(next_board)
+		
+		stone = np.sum(next_board_np == 1)
+		
+		if stone < min_stones:
+			min_stones = stone
+			next_move = move
+		
+	return next_move
