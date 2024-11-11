@@ -1,6 +1,7 @@
 import random
 import copy
 import OthelloLogic
+import numpy as np
 
 """
 引数について
@@ -43,18 +44,20 @@ def getAction(board,moves):
 
 	return next_move
 
-def max_stone(board,moves):
-	max = 0
-	next_move = []
-	for move in moves:
-		stone_count = 0
-		next_board = OthelloLogic.execute(copy.deepcopy(board),move,1,8)
+def max_stone(board, moves):
+    max_stones = 0
+    next_move = None
+    board_np = np.array(board)  
 
-		for row in next_board:
-			stone_count += row.count(1)
+    for move in moves:
+     
+        next_board = OthelloLogic.execute(copy.deepcopy(board_np), move, 1, 8)
+        next_board_np = np.array(next_board)
+    
+        stone_count = np.sum(next_board_np == 1)
 
-		if stone_count > max:
-			max = stone_count
-			next_move = move
-	
-	return next_move
+        if stone_count > max_stones:
+            max_stones = stone_count
+            next_move = move
+
+    return next_move
