@@ -50,7 +50,7 @@ def min_stone(board, moves):
 	board_np = np.array(board)
 
 	for move in moves:
-		next_board = OthelloLogic.execute(copy.deepcopy(board),move,1,8)
+		next_board = OthelloLogic.execute(copy.deepcopy(board_np),move,1,8)
 		next_board_np = np.array(next_board)
 		
 		stone = np.sum(next_board_np == 1)
