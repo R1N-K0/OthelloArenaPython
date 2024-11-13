@@ -1,0 +1,65 @@
+get Action
+引数
+    board
+    moves
+
+
+返却値
+    next_move #次に打つ手
+
+処理内容
+        #Q-Learningに基づいて次の手を選択(ε-グリーンディ法)
+        next_move = choose_action(board, moves)
+
+
+        #報酬の計算
+        reward = calc_reward(next_move)
+
+        #Q-テーブルを更新
+         update_q_table(board, next_move, reward, next_board)
+
+
+choose_action
+引数 
+    board
+    moves
+
+返却値
+    next_move
+
+処理内容
+    # ε-グリーディ戦略でアクションを選択
+    if 確率εの時
+        ランダムな手を選ぶ(新しく手を探してみる)
+        
+    else:
+        今までの最大のアクションを選ぶ
+        
+
+calc_reward
+引数
+    next_move
+
+返却値
+    reward
+
+処理
+    評価関数に基づいて報酬を計算
+
+update_q_table
+引数
+    board
+    next_move
+    reward
+    next_board
+
+返却値
+    null
+
+処理内容
+    Q値の計算
+
+    if 新しいQ値が最大なら
+        Qテーブルの更新
+    else
+        null
