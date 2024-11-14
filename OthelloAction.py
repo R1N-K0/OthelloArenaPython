@@ -2,71 +2,67 @@ import random
 import copy
 import OthelloLogic
 import numpy as np
+import pickle
 
-# Qテーブル
-q_table = {}
 
-alpha = 0.1   # 学習率
-gamma = 0.9   # 割引率
+alpha = 0.3  # 学習率
+gamma = 0.99   # 割引率
 epsilon = 0.2 # 探索率
 
-def getAction(board, moves):
-    print("現在の盤面")
-    print(board)
 
-    print("自分が石を置ける場所のリスト")
-    print(moves)
+def get_random_action(board, moves):
+    return random.choice(moves)
+
+def getAction(board, moves, game_count, q_table):
+    print(f"game_count: {game_count}")
+    print(f"■" * {int((game_count/10000)*100)})
+    # print("現在の盤面")
+    # print(board)
+
+    # print("自分が石を置ける場所のリスト")
+    # print(moves)
 
     # Q-Learningに基づいて次の手を選択
-    next_move = select_move(board, moves)
-    print("次に石を置く予定の場所")
-    print(next_move)
-
-    # next_moveに石を置いた場合の次の盤面を取得する
-    # OthelloLogic.executeの第1引数は現在の盤面、第2引数はこれから石を置く場所、第3引数は石を置く人が自分のAIなら1で、対戦相手なら-1に設定、第4引数は盤面の大きさで8×8なら8を設定
-    next_board = OthelloLogic.execute(copy.deepcopy(board), next_move, 1, 8)
-    opponent_moves = OthelloLogic.getMoves(next_board, -1, 8)
-    print("次の盤面")
-    print(next_board)
-
-    print("相手が石を置ける場所のリスト")
-    print(opponent_moves)
-    # 報酬を取得
-    reward = get_reward(next_board)
-    print("報酬")
-    print(reward)
-
-    update_table(board, next_move, next_board, reward, opponent_moves)
-
-    # print("Qテーブル")
-    # print(q_table)
+    next_move = select_move(board, moves, game_count, q_table)
+    # print("次に石を置く予定の場所")
+    # print(next_move)
 
     return list(next_move)
 
-def select_move(board, moves):
-    if random.random() < epsilon:
-        move = random.choice(moves)
-        return  tuple(move)
+def select_move(board, moves, game_count, q_table):
+    if random.random() < (epsilon / (game_count // 1000 + 1)):
+        return random.choice(moves)
     else:
-        #  Q値が最大となる手を選択
-        q_list = [q_table.get((tuple(map(tuple, board)), tuple(move)), 0) for move in moves]
-        move = moves[np.argmax(q_list)]
-        return tuple(move)    
+        q_values = [q_table.get((tuple(map(tuple, board)), tuple(move)), 0) for move in moves]
+        max_q = max(q_values)
+        best_moves = [move for i, move in enumerate(moves) if q_values[i] == max_q]
+        return random.choice(best_moves)
 
 
-def update_table(board, move, next_board, reward, opponent_moves):
+def update_table(board, move, next_next_board, reward, opponent_move, q_table):
     
     board_state = tuple(map(tuple, board))
-    next_board_state = tuple(map(tuple, next_board))
+    next_board_state = tuple(map(tuple, next_next_board))
 
+    move = tuple(move)
+
+    # 現在のQ値を取得（なければ0）
+    # ここでいう現在のQ値とは、AIが石を置いた後の盤面におけるQ値
     current_q = q_table.get((board_state, move), 0)
 
-    # 相手が次に打つ手の中で最大のQ値を取得
-    if len(opponent_moves) == 0:
+    # 相手が石を置ける場所がない場合、次のQ値は0
+    if not opponent_move:
         next_q = 0
+    
+    # 相手が石を置いた場合、その次の最大のQ値
     else:
-        next_q_list = [q_table.get((tuple(map(tuple, board)), tuple(opponent_move)), 0) for opponent_move in opponent_moves]
-        next_q = max(next_q_list)
+        next_next_moves = OthelloLogic.getMoves(next_next_board, 1, 8)
+        next_q_list = [q_table.get((tuple(map(tuple, next_next_board)), tuple(next_next_move)), 0) for next_next_move in next_next_moves]
+        
+        if next_q_list:  # next_q_listが空でないことを確認
+            next_q = max(next_q_list)
+        else:
+            next_q = 0  # next_q_listが空であれば0にする
     
     # Q値を更新
     # Q学習の更新式
