@@ -1,4 +1,5 @@
 import random
+import numpy as np
 
 """
 引数について
@@ -11,6 +12,104 @@ moves:現在の合法手の一覧
 """
 
 def getAction(board,moves):
+
 	#渡されたMovesの中からランダムで返り値として返却する。
 	index = random.randrange(len(moves))
+	print("ボードの状態")
+	print(board)
+
+	# board_bp = np.array(board)
+	# board_flatten = board_bp.flatten()
+	# print("ボードの状態(1次元)")
+	# print(board_flatten)
+
+	print("合法手の一覧")
+	print(moves)
+	print("打てる場所")
+	
+	# test_index = 26
+	# adjust_index = test_index - sum(1 for i in [27, 28, 35, 36] if i < test_index)
+	# print("例えば(7,7)に打つ場合のインデックス")
+	# print(adjust_index)
+
 	return moves[index]
+
+
+
+class OthelloQLearning:
+	def __init__(self, feature_dim =64, action_dim = 61, alpha = 0.1, gamma = 0.9, epsilon = 0.1):
+		self.feature_dim = feature_dim
+		self.action_dim = action_dim
+		self.alpha = alpha
+		self.gamma = gamma
+		self.epsilon = epsilon
+
+		# 重みの初期化(61個の行動の重みを64次元の特徴量で表現)
+		self.weights = np.zeros((self.action_dim, self.feature_dim))
+
+		# 前回の状態と行動
+		self.current_feature = None
+		self.current_action = None
+		self.current_q = None
+	
+	def get_feature(self, board):
+		#盤面から特徴量を取得
+		# 64次元の特徴量を返す
+
+		# 1次元に変換
+		board_np = np.array(board)
+		feature = board_np.flatten()
+		# 1次元の特徴量を返す
+		return feature
+	
+	def calc_action_index(self, action):
+		# Q値の計算(渡された行動のQ値を計算する)
+		# 行動のインデックスを取得(盤面の左上から右下にかけて0~63)
+		# 27, 28, 35, 36は初期位置なので除外(初期位置を過ぎるごとに1だけずれる)
+		action_index = (action[0] + action[1] * 8)
+		adjusted_index = action_index - sum(1 for i in [27, 28, 35, 36] if i < action_index)
+		return adjusted_index
+	
+	def calc_q(self, board_feature, action):
+		
+		# Q値の計算(渡された行動のQ値を計算する)
+		adjusted_index = self.calc_action_index(action)
+		q_value = np.dot(self.weights[adjusted_index], board_feature)
+		
+		return q_value
+	
+	def select_action(self, board_feature, moves):
+		# ε-greedy法で行動を選択する
+		# εの確率でランダムに行動を選択し、1-εの確率でQ値が最大となる行動を選択する
+
+		if np.random.rand() < self.epsilon:
+			# ランダムに行動を選択
+			action = np.random.choice(moves)
+			
+		else:
+			# Q値が最大となる行動を選択
+			q_values = [self.calc_q(board_feature, action) for action in moves]
+			# 最大のQ値を持つ行動を選択(argmaxは最大のインデックスを返す-> 行動ごとにQ値を計算しているので、インデックスが行動そのもの)
+			action = moves[np.argmax(q_values)]
+
+		return action
+	
+	def update_weights(self, reward, next_board_feature, next_moves):
+		
+		
+		if not next_moves:
+			# 次の状態がない場合
+			next_max_q = 0
+		else:
+			next_q_values = [self.calc_q(next_board_feature, next_action) for next_action in next_moves]
+			next_max_q = np.max(next_q_values)
+
+		
+		td_error = reward + self.gamma * next_max_q - self.current_q
+		adjusted_index = self.calc_action_index(self.current_action)
+		self.weights[adjusted_index] += self.alpha * td_error * self.current_feature
+
+
+		
+
+		
