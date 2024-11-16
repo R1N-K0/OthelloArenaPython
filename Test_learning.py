@@ -41,7 +41,7 @@ board[int(size/2)-1][int(size/2)]=-1;
 board[int(size/2)][int(size/2)]=1;
 
 # 学習の設定
-total_games = 10000
+total_games = 1000
 record_interval = 100
 
 # 勝敗記録用
@@ -87,8 +87,8 @@ for game in range(1, total_games + 1):
         # 盤面を更新
         board = OthelloLogic.execute(board,action,player,size)
         OthelloLogic.printBoard(board)
-        print('現在の合法手一覧')
-        print(moves)
+        # print('現在の合法手一覧')
+        # print(moves)
         moves = OthelloLogic.getMoves(board,player*-1,size)
         if(len(moves) == 0):
             moves = OthelloLogic.getMoves(board,player,size)

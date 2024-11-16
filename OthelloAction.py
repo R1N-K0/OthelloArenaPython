@@ -15,7 +15,6 @@ def get_random_action(board, moves):
 
 def getAction(board, moves, game_count, q_table):
     print(f"game_count: {game_count}")
-    print(f"■" * {int((game_count/10000)*100)})
     # print("現在の盤面")
     # print(board)
 
@@ -72,7 +71,7 @@ def update_table(board, move, next_next_board, reward, opponent_move, q_table):
 
 # この報酬を変更することで、AIの学習方法を変更できる
 def get_reward(board):
-    # 例：勝利なら+1、敗北なら-1、引き分けまたは中間状態なら0
+    # 勝利なら+1、敗北なら-1、引き分けまたは中間状態なら0
     if is_winning_state(board):
         return 1
     elif is_losing_state(board):
