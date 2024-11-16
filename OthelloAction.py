@@ -11,30 +11,28 @@ moves:現在の合法手の一覧
 
 """
 
-def getAction(board,moves):
+# def getAction(board,moves):
 
-	#渡されたMovesの中からランダムで返り値として返却する。
-	index = random.randrange(len(moves))
-	print("ボードの状態")
-	print(board)
+# 	#渡されたMovesの中からランダムで返り値として返却する。
+# 	index = random.randrange(len(moves))
+# 	print("ボードの状態")
+# 	print(board)
 
-	# board_bp = np.array(board)
-	# board_flatten = board_bp.flatten()
-	# print("ボードの状態(1次元)")
-	# print(board_flatten)
+# 	# board_bp = np.array(board)
+# 	# board_flatten = board_bp.flatten()
+# 	# print("ボードの状態(1次元)")
+# 	# print(board_flatten)
 
-	print("合法手の一覧")
-	print(moves)
-	print("打てる場所")
+# 	print("合法手の一覧")
+# 	print(moves)
+# 	print("打てる場所")
 	
-	# test_index = 26
-	# adjust_index = test_index - sum(1 for i in [27, 28, 35, 36] if i < test_index)
-	# print("例えば(7,7)に打つ場合のインデックス")
-	# print(adjust_index)
+# 	# test_index = 26
+# 	# adjust_index = test_index - sum(1 for i in [27, 28, 35, 36] if i < test_index)
+# 	# print("例えば(7,7)に打つ場合のインデックス")
+# 	# print(adjust_index)
 
-	return moves[index]
-
-
+# 	return moves[index]
 
 class OthelloQLearning:
 	def __init__(self, feature_dim =64, action_dim = 61, alpha = 0.1, gamma = 0.9, epsilon = 0.1):
@@ -59,16 +57,25 @@ class OthelloQLearning:
 		# 1次元に変換
 		board_np = np.array(board)
 		feature = board_np.flatten()
-		# 1次元の特徴量を返す
+
+		# 正規化(値の類似性を保つため)
+		norm = np.linalg.norm(feature)
+		if norm != 0:
+			feature /= norm
+
 		return feature
 	
 	def calc_action_index(self, action):
 		# Q値の計算(渡された行動のQ値を計算する)
 		# 行動のインデックスを取得(盤面の左上から右下にかけて0~63)
 		# 27, 28, 35, 36は初期位置なので除外(初期位置を過ぎるごとに1だけずれる)
-		action_index = (action[0] + action[1] * 8)
-		adjusted_index = action_index - sum(1 for i in [27, 28, 35, 36] if i < action_index)
-		return adjusted_index
+		# passの場合は-1を返す(行動のインデックスは0~60, passは61)
+		if action == "pass":
+			return -1
+		else:
+			action_index = (action[0] + action[1] * 8)
+			adjusted_index = action_index - sum(1 for i in [27, 28, 35, 36] if i < action_index)
+			return adjusted_index
 	
 	def calc_q(self, board_feature, action):
 		
@@ -81,6 +88,8 @@ class OthelloQLearning:
 	def select_action(self, board_feature, moves):
 		# ε-greedy法で行動を選択する
 		# εの確率でランダムに行動を選択し、1-εの確率でQ値が最大となる行動を選択する
+		if not moves:
+			return "pass"
 
 		if np.random.rand() < self.epsilon:
 			# ランダムに行動を選択
@@ -93,6 +102,17 @@ class OthelloQLearning:
 			action = moves[np.argmax(q_values)]
 
 		return action
+	
+	def get_reward(self, is_game_over, is_winner):
+		# 報酬の計算
+		if is_game_over:
+			if is_winner:
+				reward = 1
+			else:
+				reward = -1
+		else:
+			reward = 0
+		return reward
 	
 	def update_weights(self, reward, next_board_feature, next_moves):
 		
@@ -108,6 +128,22 @@ class OthelloQLearning:
 		td_error = reward + self.gamma * next_max_q - self.current_q
 		adjusted_index = self.calc_action_index(self.current_action)
 		self.weights[adjusted_index] += self.alpha * td_error * self.current_feature
+
+	def get_action(self, board, moves):
+		# 盤面から特徴量を取得
+		board_feature = self.get_feature(board)
+
+		# 行動を選択
+		action = self.select_action(board_feature, moves)
+
+		# 状態の更新
+		self.current_feature = board_feature
+		self.current_action = action
+		self.current_q = self.calc_q(board_feature, action)
+
+		return action
+	
+
 
 
 		

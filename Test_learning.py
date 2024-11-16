@@ -5,29 +5,7 @@ import pickle
 import os
 
 
-q_table = {}
 
-
-def save_q_table(filename):
-    """Qテーブルを保存"""
-    if os.path.exists(filename):
-        print(f"'{filename}' はすでに存在します。上書きされます。")
-    else:
-        print(f"'{filename}' は存在しないため、新しく作成されます。")
-    
-    with open(filename, 'wb') as f:
-        pickle.dump(q_table, f)
-    print(f"Qテーブルが '{filename}' に保存されました。")
-
-def load_q_table(filename):
-    """Qテーブルを読み込む"""
-    global q_table
-    try:
-        with open(filename, 'rb') as f:
-            q_table = pickle.load(f)
-        print(f"Qテーブルが '{filename}' から読み込まれました。")
-    except FileNotFoundError:
-        print(f"指定されたファイル '{filename}' が見つかりません。")
 
 #sizeを変更することでテストプレイする盤面の大きさを変更できます。
 #size = 4
@@ -41,7 +19,7 @@ board[int(size/2)-1][int(size/2)]=-1;
 board[int(size/2)][int(size/2)]=1;
 
 # 学習の設定
-total_games = 10000
+total_games = 1000
 record_interval = 100
 
 # 勝敗記録用
@@ -51,9 +29,6 @@ draws = 0
 
 # 勝率の記録
 win_rates = []
-
-# Qテーブルの初期化
-load_q_table('q_table.pkl')
 
 for game in range(1, total_games + 1):
     board = [row[:] for row in board_temp]
@@ -98,6 +73,8 @@ for game in range(1, total_games + 1):
             player = player * -1
 
     print('正常に終了しました。')		
+
+    
       # 最終的な石の数を数えて勝敗を決定
     ai_stones = sum(row.count(1) for row in board)
     random_stones = sum(row.count(-1) for row in board)
@@ -121,6 +98,3 @@ print("AIの勝利:", wins)
 print("ランダムプレイヤーの勝利:", losses)
 print("引き分け:", draws)
 print("100ゲームごとの勝率:", win_rates)
-
-# Qテーブルを保存
-save_q_table('q_table.pickle')

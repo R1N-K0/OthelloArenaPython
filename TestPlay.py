@@ -1,5 +1,6 @@
 import OthelloAction
 import OthelloLogic
+from OthelloAction import OthelloQLearning
 
 #sizeを変更することでテストプレイする盤面の大きさを変更できます。
 #size = 4
@@ -11,6 +12,8 @@ board[int(size/2)-1][int(size/2)-1] = 1;
 board[int(size/2)][int(size/2)-1]=-1;
 board[int(size/2)-1][int(size/2)]=-1;
 board[int(size/2)][int(size/2)]=1;
+
+ai = OthelloQLearning()
 
 player = -1
 moves = OthelloLogic.getMoves(board,player,size)
