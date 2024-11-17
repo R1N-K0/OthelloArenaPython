@@ -94,7 +94,7 @@ class OthelloQLearning:
 
 		if np.random.rand() < self.epsilon:
 			# ランダムに行動を選択
-			action = np.random.choice(moves)
+			action = random.choice(moves)
 			
 		else:
 			# Q値が最大となる行動を選択
