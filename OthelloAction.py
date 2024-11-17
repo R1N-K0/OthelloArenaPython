@@ -11,28 +11,28 @@ moves:現在の合法手の一覧
 
 """
 
-# def getAction(board,moves):
+def getAction(board,moves):
+	if not moves:
+		return "pass"
+	#渡されたMovesの中からランダムで返り値として返却する。
+	index = random.randrange(len(moves))
+	print("ボードの状態")
+	print(board)
 
-# 	#渡されたMovesの中からランダムで返り値として返却する。
-# 	index = random.randrange(len(moves))
-# 	print("ボードの状態")
-# 	print(board)
+	# board_bp = np.array(board)
+	# board_flatten = board_bp.flatten()
+	# print("ボードの状態(1次元)")
+	# print(board_flatten)
 
-# 	# board_bp = np.array(board)
-# 	# board_flatten = board_bp.flatten()
-# 	# print("ボードの状態(1次元)")
-# 	# print(board_flatten)
-
-# 	print("合法手の一覧")
-# 	print(moves)
-# 	print("打てる場所")
+	print("合法手の一覧")
+	print(moves)
 	
-# 	# test_index = 26
-# 	# adjust_index = test_index - sum(1 for i in [27, 28, 35, 36] if i < test_index)
-# 	# print("例えば(7,7)に打つ場合のインデックス")
-# 	# print(adjust_index)
+	# test_index = 26
+	# adjust_index = test_index - sum(1 for i in [27, 28, 35, 36] if i < test_index)
+	# print("例えば(7,7)に打つ場合のインデックス")
+	# print(adjust_index)
 
-# 	return moves[index]
+	return moves[index]
 
 class OthelloQLearning:
 	def __init__(self, feature_dim =64, action_dim = 61, alpha = 0.1, gamma = 0.9, epsilon = 0.1):
@@ -69,10 +69,11 @@ class OthelloQLearning:
 		# Q値の計算(渡された行動のQ値を計算する)
 		# 行動のインデックスを取得(盤面の左上から右下にかけて0~63)
 		# 27, 28, 35, 36は初期位置なので除外(初期位置を過ぎるごとに1だけずれる)
-		# passの場合は-1を返す(行動のインデックスは0~60, passは61)
+		# passの時は-1を返す(一番後ろのインデックス)
 		if action == "pass":
 			return -1
 		else:
+
 			action_index = (action[0] + action[1] * 8)
 			adjusted_index = action_index - sum(1 for i in [27, 28, 35, 36] if i < action_index)
 			return adjusted_index
@@ -115,11 +116,14 @@ class OthelloQLearning:
 		return reward
 	
 	def update_weights(self, reward, next_board_feature, next_moves):
-		
-		
+		# 重みの更新
+
+		# もし次の行動がない場合はpassを選択(passのQを計算)
 		if not next_moves:
-			# 次の状態がない場合
-			next_max_q = 0
+			action = "pass"
+			next_max_q = self.calc_q(next_board_feature, action)
+
+		# 次の行動がある場合は最大のQ値を計算
 		else:
 			next_q_values = [self.calc_q(next_board_feature, next_action) for next_action in next_moves]
 			next_max_q = np.max(next_q_values)
@@ -134,7 +138,10 @@ class OthelloQLearning:
 		board_feature = self.get_feature(board)
 
 		# 行動を選択
-		action = self.select_action(board_feature, moves)
+		if not moves :
+			action = "pass"
+		else:
+			action = self.select_action(board_feature, moves)
 
 		# 状態の更新
 		self.current_feature = board_feature
