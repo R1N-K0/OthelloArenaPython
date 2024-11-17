@@ -43,7 +43,7 @@ class OthelloQLearning:
 		self.epsilon = epsilon
 
 		# 重みの初期化(61個の行動の重みを64次元の特徴量で表現)
-		self.weights = np.zeros((self.action_dim, self.feature_dim))
+		self.weights = np.random.uniform(-0.1, 0.1, (self.action_dim, self.feature_dim))
 
 		# 前回の状態と行動
 		self.current_feature = None
@@ -151,7 +151,17 @@ class OthelloQLearning:
 		
 		td_error = reward + self.gamma * next_max_q - self.current_q
 		adjusted_index = self.calc_action_index(self.current_action)
+
+		print(f"報酬: {reward}, 次状態の最大Q値: {next_max_q}, 現在のQ値: {self.current_q}, TD誤差: {td_error}")
+
+		print("更新前の重み")
+		print(self.weights[adjusted_index])
+
+		# 重みの更新
 		self.weights[adjusted_index] += self.alpha * td_error * self.current_feature
+
+		print("更新後の重み")
+		print(self.weights[adjusted_index])
 
 	
 	

@@ -150,5 +150,9 @@ def main():
     print("ゲーム終了")
     OthelloLogic.printBoard(board)
 
+    # 重みの確認
+    print("学習後の重み:")
+    print(ai.weights)
+
 if __name__ == "__main__":
     main()
