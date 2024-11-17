@@ -39,12 +39,10 @@ def update_weights_func(reward, next_board, ai):
     # 重みの更新
     ai.update_weights(reward, next_board_feature, next_moves)    
 
-def main():
-    size = 8  # 標準の8x8盤面
+def play_single_episode(ai, size):
+   
     board = create_initial_board(size)
     player = -1  # 黒 (-1) から開始
-
-    ai  = OthelloAction.OthelloQLearning()
     
     # 初期盤面表示
     print("初期盤面")
@@ -52,7 +50,7 @@ def main():
 
     while True:
         print(f"現在のプレイヤー: {'黒' if player == -1 else '白'}")
-        input()
+        # input()
         
         # 合法手を取得
         
@@ -152,6 +150,35 @@ def main():
 
     # 重みの確認
     print("学習後の重み:")
+    print(ai.weights)
+    return reward
+
+
+
+def main():
+    size = 8  # ボードサイズ
+    games_to_play = 1000  # 総ゲーム数
+    report_interval = 100  # 勝率を報告する間隔
+    win_count = 0  # 勝利数カウント
+    draw_count = 0  # 引き分け数カウント
+    ai = OthelloAction.OthelloQLearning()
+    for game_num in range(1, games_to_play + 1):
+            result = play_single_episode(ai, size)
+            if result == 1:
+                win_count += 1
+            elif result == 0:
+                draw_count += 1
+
+            # 指定の間隔で勝率を表示
+            if game_num % report_interval == 0:
+                print(f"ゲーム数: {game_num}, 勝率: {win_count / game_num:.2%}, 引き分け率: {draw_count / game_num:.2%}")
+
+        # 最終結果
+    print("全ゲーム終了")
+    print(f"総ゲーム数: {games_to_play}")
+    print(f"最終勝率: {win_count / games_to_play:.2%}")
+    print(f"最終引き分け率: {draw_count / games_to_play:.2%}")
+    print(f"学習後の重み:")
     print(ai.weights)
 
 if __name__ == "__main__":

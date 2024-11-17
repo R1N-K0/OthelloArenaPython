@@ -35,12 +35,14 @@ def getAction(board,moves):
 	return moves[index]
 
 class OthelloQLearning:
-	def __init__(self, feature_dim =64, action_dim = 61, alpha = 0.1, gamma = 0.9, epsilon = 0.1):
+	def __init__(self, feature_dim =64, action_dim = 61, alpha = 0.1, gamma = 0.9, initial_temperature=1.0, min_temperature=0.1, decay_rate=0.99):
 		self.feature_dim = feature_dim
 		self.action_dim = action_dim
 		self.alpha = alpha
 		self.gamma = gamma
-		self.epsilon = epsilon
+		self.temperature = initial_temperature  # 初期温度
+		self.min_temperature = min_temperature  # 最小温度
+		self.decay_rate = decay_rate  # 温度減衰率
 
 		# 重みの初期化(61個の行動の重みを64次元の特徴量で表現)
 		self.weights = np.random.uniform(-0.1, 0.1, (self.action_dim, self.feature_dim))
@@ -87,22 +89,41 @@ class OthelloQLearning:
 		return q_value
 	
 	def select_action(self, board_feature, moves):
-		# ε-greedy法で行動を選択する
-		# εの確率でランダムに行動を選択し、1-εの確率でQ値が最大となる行動を選択する
+		#  """ボルツマン選択で行動を選択"""
+		
 		if not moves:
 			return "pass"
+		
+		# Q値の計算
+		q_values = []
+		for action in moves:
+			q_values.append(self.calc_q(board_feature, action))
+		
+		# ボルツマン選択の確率分布を計算
+		q_values = np.array(q_values)
+		exp_q_values = np.exp(q_values / self.temperature)
+		probability = exp_q_values / np.sum(exp_q_values)
 
-		if np.random.rand() < self.epsilon:
-			# ランダムに行動を選択
-			action = random.choice(moves)
-			
-		else:
-			# Q値が最大となる行動を選択
-			q_values = [self.calc_q(board_feature, action) for action in moves]
-			# 最大のQ値を持つ行動を選択(argmaxは最大のインデックスを返す-> 行動ごとにQ値を計算しているので、インデックスが行動そのもの)
-			action = moves[np.argmax(q_values)]
+		# 行動を選択(確率分布に従って行動を選択)
+		action = np.random.choice(moves, p=probability)
+
+		# 温度を下げる
+		self.temperature = max(self.min_temperature, self.temperature * self.decay_rate)
 
 		return action
+		
+
+		# if np.random.rand() < self.epsilon:
+		# 	# ランダムに行動を選択
+		# 	action = random.choice(moves)
+			
+		# else:
+		# 	# Q値が最大となる行動を選択
+		# 	q_values = [self.calc_q(board_feature, action) for action in moves]
+		# 	# 最大のQ値を持つ行動を選択(argmaxは最大のインデックスを返す-> 行動ごとにQ値を計算しているので、インデックスが行動そのもの)
+		# 	action = moves[np.argmax(q_values)]
+
+		# return action
 	
 
 	def get_action(self, board, moves):
@@ -155,12 +176,14 @@ class OthelloQLearning:
 		print(f"報酬: {reward}, 次状態の最大Q値: {next_max_q}, 現在のQ値: {self.current_q}, TD誤差: {td_error}")
 
 		print("更新前の重み")
+		print(f"weight{adjusted_index}")
 		print(self.weights[adjusted_index])
 
 		# 重みの更新
 		self.weights[adjusted_index] += self.alpha * td_error * self.current_feature
 
 		print("更新後の重み")
+		print(f"weight{adjusted_index}")
 		print(self.weights[adjusted_index])
 
 	
