@@ -11,41 +11,40 @@ moves:現在の合法手の一覧
 
 """
 
-def getAction(board,moves):
-	if not moves:
-		return "pass"
-	#渡されたMovesの中からランダムで返り値として返却する。
-	index = random.randrange(len(moves))
-	print("ボードの状態")
-	print(board)
+# def getAction(board,moves):
+# 	if not moves:
+# 		return "pass"
+# 	#渡されたMovesの中からランダムで返り値として返却する。
+# 	index = random.randrange(len(moves))
+# 	print("ボードの状態")
+# 	print(board)
 
-	# board_bp = np.array(board)
-	# board_flatten = board_bp.flatten()
-	# print("ボードの状態(1次元)")
-	# print(board_flatten)
+# 	# board_bp = np.array(board)
+# 	# board_flatten = board_bp.flatten()
+# 	# print("ボードの状態(1次元)")
+# 	# print(board_flatten)
 
-	print("合法手の一覧")
-	print(moves)
+# 	print("合法手の一覧")
+# 	print(moves)
 	
-	# test_index = 26
-	# adjust_index = test_index - sum(1 for i in [27, 28, 35, 36] if i < test_index)
-	# print("例えば(7,7)に打つ場合のインデックス")
-	# print(adjust_index)
+# 	# test_index = 26
+# 	# adjust_index = test_index - sum(1 for i in [27, 28, 35, 36] if i < test_index)
+# 	# print("例えば(7,7)に打つ場合のインデックス")
+# 	# print(adjust_index)
 
-	return moves[index]
+# 	return moves[index]
 
 class OthelloQLearning:
-	def __init__(self, feature_dim =64, action_dim = 61, alpha = 0.1, gamma = 0.9, initial_temperature=1.0, min_temperature=0.1, decay_rate=0.99):
+	def __init__(self, feature_dim =64, action_dim = 61, alpha = 0.2, gamma = 0.9):
 		self.feature_dim = feature_dim
 		self.action_dim = action_dim
 		self.alpha = alpha
 		self.gamma = gamma
-		self.temperature = initial_temperature  # 初期温度
-		self.min_temperature = min_temperature  # 最小温度
-		self.decay_rate = decay_rate  # 温度減衰率
+		self.temperature = 0.1
 
 		# 重みの初期化(61個の行動の重みを64次元の特徴量で表現)
-		self.weights = np.random.uniform(-0.1, 0.1, (self.action_dim, self.feature_dim))
+		# self.weights = np.random.uniform(-0.1, 0.1, (self.action_dim, self.feature_dim))
+		self.weights = np.full((self.action_dim, self.feature_dim), 0.05)
 
 		# 前回の状態と行動
 		self.current_feature = None
@@ -65,6 +64,7 @@ class OthelloQLearning:
 		if norm != 0:
 			feature /= float(norm)
 
+		print(feature)
 		return feature
 	
 	def calc_action_index(self, action):
@@ -85,32 +85,39 @@ class OthelloQLearning:
 		# Q値の計算(渡された行動のQ値を計算する)
 		adjusted_index = self.calc_action_index(action)
 		q_value = np.dot(self.weights[adjusted_index], board_feature)
+
+		print(f"Q値: {q_value}")
 		
 		return q_value
 	
 	def select_action(self, board_feature, moves):
-		#  """ボルツマン選択で行動を選択"""
-		
+		"""ボルツマン選択で行動を選択"""
+
 		if not moves:
 			return "pass"
 		
 		# Q値の計算
-		q_values = []
-		for action in moves:
-			q_values.append(self.calc_q(board_feature, action))
+		q_values = [self.calc_q(board_feature, action) for action in moves]
 		
-		# ボルツマン選択の確率分布を計算
-		q_values = np.array(q_values)
+		# Q値にNaNが含まれているかチェック
+		if np.any(np.isnan(q_values)):
+			print("警告: Q値にNaNが含まれています")
+			q_values = np.nan_to_num(q_values, nan=0.0)  # NaNを0に置き換え
+
+		# Q値のオーバーフローを防止
+		q_values = np.clip(q_values, -500, 500)  # Q値を制限
 		exp_q_values = np.exp(q_values / self.temperature)
-		probability = exp_q_values / np.sum(exp_q_values)
 
-		# 行動を選択(確率分布に従って行動を選択)
-		action = np.random.choice(moves, p=probability)
+		# 確率分布を計算
+		sum_exp_q_values = np.sum(exp_q_values)
+		if sum_exp_q_values == 0:
+			sum_exp_q_values = 1e-10  # ゼロ除算を避ける
+		probability = exp_q_values / sum_exp_q_values
 
-		# 温度を下げる
-		self.temperature = max(self.min_temperature, self.temperature * self.decay_rate)
+		# 確率分布に基づいて行動を選択
+		action_index = np.random.choice(len(moves), p=probability)
+		return moves[action_index]
 
-		return action
 		
 
 		# if np.random.rand() < self.epsilon:
