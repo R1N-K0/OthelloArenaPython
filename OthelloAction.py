@@ -55,13 +55,13 @@ class OthelloQLearning:
 		# 64次元の特徴量を返す
 
 		# 1次元に変換
-		board_np = np.array(board)
+		board_np = np.array(board, dtype = np.float64)
 		feature = board_np.flatten()
 
 		# 正規化(値の類似性を保つため)
 		norm = np.linalg.norm(feature)
 		if norm != 0:
-			feature /= norm
+			feature /= float(norm)
 
 		return feature
 	
@@ -104,34 +104,6 @@ class OthelloQLearning:
 
 		return action
 	
-	def get_reward(self, is_game_over, is_winner):
-		# 報酬の計算
-		if is_game_over:
-			if is_winner:
-				reward = 1
-			else:
-				reward = -1
-		else:
-			reward = 0
-		return reward
-	
-	def update_weights(self, reward, next_board_feature, next_moves):
-		# 重みの更新
-
-		# もし次の行動がない場合はpassを選択(passのQを計算)
-		if not next_moves:
-			action = "pass"
-			next_max_q = self.calc_q(next_board_feature, action)
-
-		# 次の行動がある場合は最大のQ値を計算
-		else:
-			next_q_values = [self.calc_q(next_board_feature, next_action) for next_action in next_moves]
-			next_max_q = np.max(next_q_values)
-
-		
-		td_error = reward + self.gamma * next_max_q - self.current_q
-		adjusted_index = self.calc_action_index(self.current_action)
-		self.weights[adjusted_index] += self.alpha * td_error * self.current_feature
 
 	def get_action(self, board, moves):
 		# 盤面から特徴量を取得
@@ -149,6 +121,39 @@ class OthelloQLearning:
 		self.current_q = self.calc_q(board_feature, action)
 
 		return action
+	
+
+	def get_reward(self, is_game_over, is_winner):
+		# 報酬の計算
+		if is_game_over:
+			if is_winner:
+				reward = 1
+			else:
+				reward = -1
+		else:
+			reward = 0
+		return reward
+	
+	def update_weights(self, reward, next_board_feature, next_moves):
+		# 重みの更新
+		# next_board, next_movesは次の"自分"の盤面と合法手
+
+		# もし次の行動がない場合はpassを選択(passのQを計算)
+		if not next_moves:
+			action = "pass"
+			next_max_q = self.calc_q(next_board_feature, action)
+
+		# 次の行動がある場合は最大のQ値を計算
+		else:
+			next_q_values = [self.calc_q(next_board_feature, next_action) for next_action in next_moves]
+			next_max_q = np.max(next_q_values)
+
+		
+		td_error = reward + self.gamma * next_max_q - self.current_q
+		adjusted_index = self.calc_action_index(self.current_action)
+		self.weights[adjusted_index] += self.alpha * td_error * self.current_feature
+
+	
 	
 
 
