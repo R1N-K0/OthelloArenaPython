@@ -35,13 +35,13 @@ moves:現在の合法手の一覧
 # 	return moves[index]
 
 class OthelloQLearning:
-	def __init__(self, feature_dim =64, action_dim = 61, alpha = 0.2, gamma = 0.9):
+	def __init__(self, feature_dim =64, action_dim = 61, alpha = 0.1, gamma = 0.9):
 		self.feature_dim = feature_dim
 		self.action_dim = action_dim
 		self.alpha = alpha
 		self.gamma = gamma
 		self.temperature = 0.1
-
+		
 		# 重みの初期化(61個の行動の重みを64次元の特徴量で表現)
 		# self.weights = np.random.uniform(-0.1, 0.1, (self.action_dim, self.feature_dim))
 		self.weights = np.full((self.action_dim, self.feature_dim), 0.05)
@@ -50,6 +50,8 @@ class OthelloQLearning:
 		self.current_feature = None
 		self.current_action = None
 		self.current_q = None
+
+		self.episode_memory = []  # エピソード中の状態・行動・報酬を記録
 	
 	def get_feature(self, board):
 		#盤面から特徴量を取得

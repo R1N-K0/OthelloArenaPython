@@ -27,7 +27,7 @@ def check_game_over(board, moves, opponent_moves):
         elif ai_stones < opponent_stones:
             return True, -1,-0.5-0.5*(opponent_stones/(ai_stones+opponent_stones))  # 敗北
         else:
-            return True, 0,0.3  # 引き分け
+            return True, 0,0.1  # 引き分け
 
     return False, 0  # ゲーム続行
 
@@ -59,7 +59,22 @@ def update_weights_func(reward, next_board, ai):
     next_moves = OthelloLogic.getMoves(next_board, -1, 8)
     next_board_feature = ai.get_feature(next_board)
     # 重みの更新
-    ai.update_weights(reward, next_board_feature, next_moves)    
+    ai.update_weights(reward, next_board_feature, next_moves) 
+
+def update_weights_monte_carlo(ai):
+    cumulative_reward = 0  # 累積報酬
+    for state, action, reward in reversed(ai.episode_memory):
+        cumulative_reward = reward + ai.gamma * cumulative_reward
+        state_feature = ai.get_feature(state)
+        action_index = ai.calc_action_index(action)
+
+        # TD誤差を計算し重みを更新
+        td_error = cumulative_reward - np.dot(ai.weights[action_index], state_feature)
+        ai.weights[action_index] += ai.alpha * td_error * state_feature
+
+    # エピソードメモリをリセット
+    ai.episode_memory = []
+
 
 def play_single_episode(ai, size):
    
@@ -141,7 +156,7 @@ def play_single_episode(ai, size):
                 # これ以降の処理をスキップ
                 # 更新処理必須
                 reward = calculate_reward(board, player)
-                update_weights_func(reward, board, ai)
+                update_weights_func(0, board, ai)
                 player *= -1  # プレイヤー交代
                 continue
             
@@ -181,7 +196,7 @@ def play_single_episode(ai, size):
             
             # 更新処理
             reward = calculate_reward(board, player)
-            update_weights_func(reward, board, ai)
+            update_weights_func(0, board, ai)
 
 
         # ここから下は共通処理
@@ -216,9 +231,9 @@ def main():
     ai = OthelloAction.OthelloQLearning()
     for game_num in range(1, games_to_play + 1):
             
-            if game_num <= game_num- 500:  
+            if game_num <= games_to_play - 500:  
                 tmp = max(initial_tmp * (decay_rate ** game_num), 0.01)
-            else:  # それ以降は固定
+            else:  
                 tmp = 0.01
             ai.temperature = tmp
 
