@@ -70,7 +70,7 @@ def update_weights_monte_carlo(ai):
         ai.weights[action_index] += ai.alpha * td_error * state_feature
 
         # print(f"更新前の重み: {ai.weights[action_index]}")
-        print(f"Q値: {np.dot(ai.weights[action_index], state_feature)}")
+        # print(f"Q値: {np.dot(ai.weights[action_index], state_feature)}")
         # print(f"更新後の重み: {ai.weights[action_index]}")
 
     # エピソードメモリをリセット
@@ -127,7 +127,7 @@ def play_single_episode(ai, naive,size):
 
             if not moves:
                 print(f"{'黒' if player == -1 else '白'}に合法手がないため、パスします。")
-                # 相手にも合法手がない場合は終了
+                # aiにも合法手がない場合は終了
                 opponent_moves = OthelloLogic.getMoves(board, -player, size)
                 if not opponent_moves:
 
@@ -141,7 +141,7 @@ def play_single_episode(ai, naive,size):
                             print("引き分け")
                             
                         update_weights_func(reward, board, ai)
-                        OthelloLogic.printBoard(board)
+                        # OthelloLogic.printBoard(board)
 
                         # 最後の手に報酬を与える
                         # ai.episode_memory[-1] = (ai.episode_memory[-1][0], ai.episode_memory[-1][1], reward)
@@ -153,7 +153,7 @@ def play_single_episode(ai, naive,size):
                 # 学習相手には合法手がないため、プレイヤー交代
                 # これ以降の処理をスキップ
                 # 更新処理必須
-                reward = calculate_intermediate_reward(board, player)
+                reward = calculate_intermediate_reward(board, -player)
                 update_weights_func(reward, board, ai)
                 player *= -1  # プレイヤー交代
                 continue
@@ -193,13 +193,13 @@ def play_single_episode(ai, naive,size):
                         
                         # ai.episode_memory[-1] = (ai.episode_memory[-1][0], ai.episode_memory[-1][1], reward)
                         # update_weights_monte_carlo(ai)
-                        OthelloLogic.printBoard(board)
+                        # OthelloLogic.printBoard(board)
                         return result
                     
             
             # 更新処理
-            reward = calculate_intermediate_reward(board, player)
-            update_weights_func(0, board, ai)
+            reward = calculate_intermediate_reward(board, -player)
+            update_weights_func(reward, board, ai)
 
 
         # ここから下は共通処理
@@ -219,14 +219,14 @@ def play_single_episode(ai, naive,size):
 
 def main():
     size = 8  # ボードサイズ
-    games_to_play = 5000  # 総ゲーム数
+    games_to_play = 3000  # 総ゲーム数
     report_interval = 100  # 勝率を報告する間隔
     win_count = 0  # 勝利数カウント
     draw_count = 0  # 引き分け数カウント
 
     initial_tmp = 1.0  # 初期温度
-    min_tmp = 0.1    # 最小温度
-    decay_steps = 4900  # 温度が最小値に到達するまでのゲーム数
+    min_tmp = 0.08   # 最小温度
+    decay_steps = 2500  # 温度が最小値に到達するまでのゲーム数
 
       # カウント変数
     interval_win_count = 0  # 100ゲーム内の勝利数

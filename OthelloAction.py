@@ -185,7 +185,7 @@ class OthelloQLearning:
 
 		
 		td_error = reward + self.gamma * next_max_q - self.current_q
-		print(td_error)
+		# print(td_error)
 		adjusted_index = self.calc_action_index(self.current_action)
 
 		# print(f"報酬: {reward}, 次状態の最大Q値: {next_max_q}, 現在のQ値: {self.current_q}, TD誤差: {td_error}")
@@ -198,7 +198,7 @@ class OthelloQLearning:
 		self.weights[adjusted_index] += self.alpha * td_error * self.current_feature
 
 		# print("更新後の重み")
-		print(f"weight{adjusted_index}")
+		# print(f"weight{adjusted_index}")
 		# print(self.weights[adjusted_index])
 
 
