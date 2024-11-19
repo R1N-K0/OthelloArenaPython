@@ -35,17 +35,17 @@ moves:現在の合法手の一覧
 # 	return moves[index]
 
 class OthelloQLearning:
-	def __init__(self, feature_dim =64, action_dim = 61, alpha = 0.1, gamma = 0.9):
+	def __init__(self, feature_dim =64, action_dim = 61, alpha = 0.3, gamma = 0.9):
 		self.feature_dim = feature_dim
 		self.action_dim = action_dim
 		self.alpha = alpha
 		self.gamma = gamma
-		self.temperature = 0.1
+		self.temperature = 1.0
 		
 		# 重みの初期化(61個の行動の重みを64次元の特徴量で表現)
 		# self.weights = np.random.uniform(-0.1, 0.1, (self.action_dim, self.feature_dim))
 		self.weights = np.full((self.action_dim, self.feature_dim), 0.05)
-
+		# self.weights = np.random.uniform(-0.1, 0.1, (self.action_dim, self.feature_dim))
 		# 前回の状態と行動
 		self.current_feature = None
 		self.current_action = None
@@ -66,16 +66,17 @@ class OthelloQLearning:
 		if norm != 0:
 			feature /= float(norm)
 
-		print(feature)
+		# print(feature)
 		return feature
-	
+
+		
 	def calc_action_index(self, action):
 		# Q値の計算(渡された行動のQ値を計算する)
 		# 行動のインデックスを取得(盤面の左上から右下にかけて0~63)
 		# 27, 28, 35, 36は初期位置なので除外(初期位置を過ぎるごとに1だけずれる)
 		# passの時は-1を返す(一番後ろのインデックス)
 		if action == "pass":
-			return -1
+			return 60
 		else:
 
 			action_index = (action[0] + action[1] * 8)
@@ -85,10 +86,13 @@ class OthelloQLearning:
 	def calc_q(self, board_feature, action):
 		
 		# Q値の計算(渡された行動のQ値を計算する)
+		
 		adjusted_index = self.calc_action_index(action)
+	
 		q_value = np.dot(self.weights[adjusted_index], board_feature)
+		
 
-		print(f"Q値: {q_value}")
+		# print(f"Q値: {q_value}")
 		
 		return q_value
 	
@@ -142,6 +146,7 @@ class OthelloQLearning:
 		# 行動を選択
 		if not moves :
 			action = "pass"
+			
 		else:
 			action = self.select_action(board_feature, moves)
 
@@ -180,21 +185,34 @@ class OthelloQLearning:
 
 		
 		td_error = reward + self.gamma * next_max_q - self.current_q
+		print(td_error)
 		adjusted_index = self.calc_action_index(self.current_action)
 
-		print(f"報酬: {reward}, 次状態の最大Q値: {next_max_q}, 現在のQ値: {self.current_q}, TD誤差: {td_error}")
+		# print(f"報酬: {reward}, 次状態の最大Q値: {next_max_q}, 現在のQ値: {self.current_q}, TD誤差: {td_error}")
 
-		print("更新前の重み")
-		print(f"weight{adjusted_index}")
-		print(self.weights[adjusted_index])
+		# print("更新前の重み")
+		# print(f"weight{adjusted_index}")
+		# print(self.weights[adjusted_index])
 
 		# 重みの更新
 		self.weights[adjusted_index] += self.alpha * td_error * self.current_feature
 
-		print("更新後の重み")
+		# print("更新後の重み")
 		print(f"weight{adjusted_index}")
-		print(self.weights[adjusted_index])
+		# print(self.weights[adjusted_index])
 
+
+class Naive_ai:
+	def __init__(self):
+		pass
+
+	def get_action(self, board, moves):
+
+		# 合法手を左上から順に探索
+		for i in range(8):
+			for j in range(8):
+				if list((i, j)) in moves:
+					return list((i, j))
 	
 	
 
