@@ -1,5 +1,7 @@
 import random
 import numpy as np
+import copy
+import OthelloLogic
 
 """
 引数について
@@ -114,6 +116,8 @@ class OthelloQLearning:
 		q_values = np.clip(q_values, -500, 500)  # Q値を制限
 		exp_q_values = np.exp(q_values / self.temperature)
 
+		
+
 		# 確率分布を計算
 		sum_exp_q_values = np.sum(exp_q_values)
 		if sum_exp_q_values == 0:
@@ -169,7 +173,7 @@ class OthelloQLearning:
 			reward = 0
 		return reward
 	
-	def update_weights(self, reward, next_board_feature, next_moves):
+	def update_weights(self, reward, next_board_feature, next_moves,loss_history):
 		# 重みの更新
 		# next_board, next_movesは次の"自分"の盤面と合法手
 
@@ -185,6 +189,7 @@ class OthelloQLearning:
 
 		
 		td_error = reward + self.gamma * next_max_q - self.current_q
+		loss_history.append(td_error**2)
 		# print(td_error)
 		adjusted_index = self.calc_action_index(self.current_action)
 
@@ -213,8 +218,35 @@ class Naive_ai:
 			for j in range(8):
 				if list((i, j)) in moves:
 					return list((i, j))
-	
-	
+				
+class Random_ai:
+	def __init__(self):
+		pass
+
+	def get_action(self, board,moves):
+
+		return random.choice(moves)
+
+class Max_stone:
+	def __init__(self):
+		pass
+
+	def get_action(self,board, moves):
+		max_stones = 0
+		next_move = None
+		board_np = np.array(board)  
+
+		for move in moves:
+			next_board = OthelloLogic.execute(copy.deepcopy(board_np), move, 1, 8)
+			next_board_np = np.array(next_board)
+		
+			stone_count = np.sum(next_board_np == 1)
+
+			if stone_count > max_stones:
+				max_stones = stone_count
+				next_move = move
+
+		return next_move
 
 
 

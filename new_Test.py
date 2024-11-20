@@ -3,6 +3,7 @@ import OthelloAction
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
 def create_initial_board(size=8):
     """Othelloの初期盤面を作成"""
@@ -49,12 +50,12 @@ def calculate_intermediate_reward(board, player):
     return 0.5 * stone_diff + 0.5 * move_diff  # ウェイトを調整可能
 
 
-def update_weights_func(reward, next_board, ai):
+def update_weights_func(reward, next_board, ai,loss_history):
     # aiの次の合法手を取得
     next_moves = OthelloLogic.getMoves(next_board, -1, 8)
     next_board_feature = ai.get_feature(next_board)
     # 重みの更新
-    ai.update_weights(reward, next_board_feature, next_moves) 
+    ai.update_weights(reward, next_board_feature, next_moves,loss_history) 
 
 def update_weights_monte_carlo(ai):
     cumulative_reward = 0  # 累積報酬
@@ -77,7 +78,10 @@ def update_weights_monte_carlo(ai):
     ai.episode_memory = []
 
 
-def play_single_episode(ai, naive,size):
+
+
+
+def play_single_episode(ai, cpu1,cpu2,size,loss_history):
    
     board = create_initial_board(size)
     player = -1  # 黒 (-1) から開始
@@ -140,7 +144,7 @@ def play_single_episode(ai, naive,size):
                         else:
                             print("引き分け")
                             
-                        update_weights_func(reward, board, ai)
+                        update_weights_func(reward, board, ai,loss_history)
                         # OthelloLogic.printBoard(board)
 
                         # 最後の手に報酬を与える
@@ -154,14 +158,18 @@ def play_single_episode(ai, naive,size):
                 # これ以降の処理をスキップ
                 # 更新処理必須
                 reward = calculate_intermediate_reward(board, -player)
-                update_weights_func(reward, board, ai)
+                update_weights_func(reward, board, ai,loss_history)
                 player *= -1  # プレイヤー交代
                 continue
             
             # 合法手がある場合
+            
+            
             # プレイヤーの手を決定（簡易AIとしてランダム選択）
             # print(f"合法手: {moves}")
-            action = naive.get_action(board, moves)# 合法手から選択
+            cpus = [cpu1,cpu2]
+            action = random.choice(cpus).get_action(board, moves)
+            # 合法手から選択
            
 
             if action not in moves:
@@ -189,7 +197,7 @@ def play_single_episode(ai, naive,size):
                             # OthelloLogic.printBoard(board)
                             print("引き分け")
                             
-                        update_weights_func(reward, board, ai)
+                        update_weights_func(reward, board, ai,loss_history)
                         
                         # ai.episode_memory[-1] = (ai.episode_memory[-1][0], ai.episode_memory[-1][1], reward)
                         # update_weights_monte_carlo(ai)
@@ -199,7 +207,7 @@ def play_single_episode(ai, naive,size):
             
             # 更新処理
             reward = calculate_intermediate_reward(board, -player)
-            update_weights_func(reward, board, ai)
+            update_weights_func(reward, board, ai,loss_history)
 
 
         # ここから下は共通処理
@@ -216,6 +224,12 @@ def play_single_episode(ai, naive,size):
     # print("学習後の重み:")
     # print(ai.weights)
    
+def calculate_exponential_temperature(game_num, initial_temp, min_temp, tau):
+    """
+    温度を指数減少スケジュールで計算
+    """
+    return min_temp + (initial_temp - min_temp) * math.exp(-game_num / tau)
+
 
 def main():
     size = 8  # ボードサイズ
@@ -227,27 +241,35 @@ def main():
     initial_tmp = 1.0  # 初期温度
     min_tmp = 0.08   # 最小温度
     decay_steps = 2500  # 温度が最小値に到達するまでのゲーム数
+    tau = 1000  # 温度の減少スケジュールを調整するパラメータ
 
       # カウント変数
     interval_win_count = 0  # 100ゲーム内の勝利数
     interval_draw_count = 0  # 100ゲーム内の引き分け数
     win_rate = [] #100ゲームごとの勝率を格納するリスト
+    loss_history = []  # 損失の履歴
     
     
     ai = OthelloAction.OthelloQLearning()
     naive = OthelloAction.Naive_ai()
+    random_ai = OthelloAction.Random_ai()
+    max_stone = OthelloAction.Max_stone()
     for game_num in range(1, games_to_play + 1):            
             
             if game_num <= decay_steps:
                 # 線形減少スケジュール
                 tmp = initial_tmp - (initial_tmp - min_tmp) * (game_num / decay_steps)
+                
+                
             else:
                 # 最小値で固定
                 tmp = min_tmp
             ai.temperature = tmp
+            # 指数減少スケジュール
+            # ai.temperature = calculate_exponential_temperature(game_num, initial_tmp, min_tmp, tau)
 
             
-            result = play_single_episode(ai, naive,size)
+            result = play_single_episode(ai,max_stone,max_stone,size,loss_history)
             print("ゲーム結果")
             print(result)
             if result == 1:
@@ -283,19 +305,45 @@ def main():
 
     std_dev = np.std(weights_array)
     print("全体の標準偏差:", std_dev)
+    print(ai.temperature)
 
 
-    # 勝率のグラフを表示
+    # # 勝率のグラフを表示
+    # print(win_rate)
+    # plt.figure(figsize=(10, 6))
+    # plt.plot(range(report_interval, games_to_play + 1, report_interval), win_rate, marker='o', label="win rate")
+    # plt.title("win rate")
+    # plt.xlabel("games")
+    # plt.ylabel("win rate")
+    # plt.ylim(0, 1)  # 勝率の範囲を 0〜1 に固定
+    # plt.grid()
+    # plt.legend()
+    # plt.show()
+
+    def moving_average(x, window_size):
+        """移動平均を計算"""
+        return np.convolve(x, np.ones(window_size) / window_size, mode='valid')
+
+    smoothed_win_rate = moving_average(win_rate, window_size=3)
+
+    # x軸を調整（移動平均の結果に合わせる）
+    x_original = range(report_interval, games_to_play + 1, report_interval)
+    x_smoothed = x_original[:len(smoothed_win_rate)]
+
+    # グラフのプロット
     print(win_rate)
     plt.figure(figsize=(10, 6))
-    plt.plot(range(report_interval, games_to_play + 1, report_interval), win_rate, marker='o', label="win rate")
-    plt.title("win rate")
-    plt.xlabel("games")
-    plt.ylabel("win rate")
-    plt.ylim(0, 1)  # 勝率の範囲を 0〜1 に固定
+    plt.plot(x_original, win_rate, marker='o', label="Original Win Rate", alpha=0.5)
+    plt.plot(x_smoothed, smoothed_win_rate, marker='o', label="Smoothed Win Rate")
+    plt.title("Win Rate (Smoothed)")
+    plt.xlabel("Games")
+    plt.ylabel("Win Rate")
+    plt.ylim(0, 1)
     plt.grid()
     plt.legend()
     plt.show()
+
+    
 
 
 if __name__ == "__main__":
