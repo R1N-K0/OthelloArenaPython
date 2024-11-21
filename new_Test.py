@@ -4,6 +4,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import min_max
 
 def create_initial_board(size=8):
     """Othelloの初期盤面を作成"""
@@ -34,6 +35,92 @@ def check_game_over(board, moves, opponent_moves):
 
     return False, 0  # ゲーム続行
 
+# 序盤、中盤、終盤の盤面の重み付け
+early_weight = [
+    [30, -12, 0, -1, -1, 0, -12, 30],
+    [-12, -15, -3, -3, -3, -3, -15, -12],
+    [0, -3, 0, -1, -1, 0, -3, 0],
+    [-1, -3, -1, -1, -1, -1, -3, -1],
+    [-1, -3, -1, -1, -1, -1, -3, -1],
+    [0, -3, 0, -1, -1, 0, -3, 0],
+    [-12, -15, -3, -3, -3, -3, -15, -12],
+    [30, -12, 0, -1, -1, 0, -12, 30]
+]
+
+mid_weight = [
+    [80, -22, 0, -1, -1, 0, -22, 80],
+    [-22, -25, -3, -3, -3, -3, -25, -22],
+    [0, -3, 0, -1, -1, 0, -3, 0],
+    [-1, -3, -1, 0, 0, -1, -3, -1],
+    [-1, -3, -1, 0, 0, -1, -3, -1],
+    [0, -3, 0, -1, -1, 0, -3, 0],
+    [-22, -25, -3, -3, -3, -3, -25, -22],
+    [80, -22, 0, -1, -1, 0, -22, 80]
+]
+
+late_weight = [
+    [15, -3, 1, 1, 1, 1, -3, 15],
+    [-3, -3, 1, 1, 1, 1, -3, -3],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [-3, -3, 1, 1, 1, 1, -3, -3],
+    [15, -3, 1, 1, 1, 1, -3, 15]
+]
+
+# 現在の局面を判定
+def get_phase(board):
+    empty_squares = sum(1 for row in board for cell in row if cell == 0)
+    if empty_squares > 48:  # 序盤
+        return "early"
+    elif empty_squares > 16:  # 中盤
+        return "mid"
+    else:  # 終盤
+        return "late"
+
+# 局面に応じた重み付けを選択
+def get_weight(phase):
+    if phase == "early":
+        return early_weight
+    elif phase == "mid":
+        return mid_weight
+    else:
+        return late_weight
+
+def hybrid_evaluation(board, player):
+    """
+    石の位置、合法手、石の数の差を統合した改良版ハイブリッド評価関数
+    """
+    # 局面の重み付けを取得
+    phase = get_phase(board)
+    board_weight = get_weight(phase)
+    
+    # 位置に基づくスコア（正規化）
+    position_score = 0
+    for x in range(8):
+        for y in range(8):
+            if board[x][y] == player:
+                position_score += board_weight[x][y]
+            elif board[x][y] == -player:
+                position_score -= board_weight[x][y]
+    position_score /= sum(sum(abs(val) for val in row) for row in board_weight)  # 正規化
+
+    # 石と合法手のスコア（進行状況に応じた重み付け）
+    stone_diff = calculate_intermediate_reward(board, player)
+    if phase == "early":
+        stone_diff *= 0.5  # 序盤では影響を抑える
+    elif phase == "late":
+        stone_diff *= 1.5  # 終盤では影響を強める
+    
+    # ハイブリッドスコア
+    reward = 0.3 * position_score + stone_diff  # バランスを調整
+    print((position_score, stone_diff))
+    print(f"ハイブリット: {reward}")
+    return reward
+
+
+
 def calculate_intermediate_reward(board, player):
     """中間報酬を計算: 石の数と合法手の数を考慮"""
     # 石の数の差を計算
@@ -50,9 +137,9 @@ def calculate_intermediate_reward(board, player):
     return 0.5 * stone_diff + 0.5 * move_diff  # ウェイトを調整可能
 
 
-def update_weights_func(reward, next_board, ai,loss_history):
+def update_weights_func(reward, next_board, ai,loss_history,player):
     # aiの次の合法手を取得
-    next_moves = OthelloLogic.getMoves(next_board, -1, 8)
+    next_moves = OthelloLogic.getMoves(next_board, player, 8)
     next_board_feature = ai.get_feature(next_board)
     # 重みの更新
     ai.update_weights(reward, next_board_feature, next_moves,loss_history) 
@@ -81,7 +168,7 @@ def update_weights_monte_carlo(ai):
 
 
 
-def play_single_episode(ai, cpu1,cpu2,size,loss_history):
+def play_single_episode(ai, cpu1,cpu2,cpu3,size,loss_history):
    
     board = create_initial_board(size)
     player = -1  # 黒 (-1) から開始
@@ -91,6 +178,7 @@ def play_single_episode(ai, cpu1,cpu2,size,loss_history):
     # OthelloLogic.printBoard(board)
 
     while True:
+        print(player)
         # print(f"現在のプレイヤー: {'黒' if player == -1 else '白'}")
         
         
@@ -109,6 +197,7 @@ def play_single_episode(ai, cpu1,cpu2,size,loss_history):
                 # 状態,行動,報酬を記録(状態は後でget_featureされるのでここではboardを入れる)
                 # intermediate_reward = calculate_intermediate_reward(board, player)
                 # ai.episode_memory.append((board, action, intermediate_reward))
+                OthelloLogic.printBoard(board)
                 player *= -1  # プレイヤー交代
                 continue
 
@@ -121,6 +210,7 @@ def play_single_episode(ai, cpu1,cpu2,size,loss_history):
             # intermediate_reward = calculate_intermediate_reward(board, player)
             # ai.episode_memory.append((board, action, intermediate_reward))
             # print(f"{'黒' if player == -1 else '白'}が{action}に置きました。\n")
+            OthelloLogic.printBoard(board)
         
 
 
@@ -128,7 +218,6 @@ def play_single_episode(ai, cpu1,cpu2,size,loss_history):
         # Q値の更新処理が必要
         else:
             moves = OthelloLogic.getMoves(board, player, size)
-
             if not moves:
                 print(f"{'黒' if player == -1 else '白'}に合法手がないため、パスします。")
                 # aiにも合法手がない場合は終了
@@ -144,21 +233,22 @@ def play_single_episode(ai, cpu1,cpu2,size,loss_history):
                         else:
                             print("引き分け")
                             
-                        update_weights_func(reward, board, ai,loss_history)
+                        update_weights_func(reward, board, ai,loss_history,-player)
                         # OthelloLogic.printBoard(board)
 
                         # 最後の手に報酬を与える
                         # ai.episode_memory[-1] = (ai.episode_memory[-1][0], ai.episode_memory[-1][1], reward)
                         # update_weights_monte_carlo(ai)
-                        # OthelloLogic.printBoard(board)
+                        OthelloLogic.printBoard(board)
                         return result
                    
                 
                 # 学習相手には合法手がないため、プレイヤー交代
                 # これ以降の処理をスキップ
                 # 更新処理必須
-                reward = calculate_intermediate_reward(board, -player)
-                update_weights_func(reward, board, ai,loss_history)
+                reward = hybrid_evaluation(board, -player)
+                update_weights_func(reward, board, ai,loss_history,-player)
+                OthelloLogic.printBoard(board)
                 player *= -1  # プレイヤー交代
                 continue
             
@@ -167,8 +257,9 @@ def play_single_episode(ai, cpu1,cpu2,size,loss_history):
             
             # プレイヤーの手を決定（簡易AIとしてランダム選択）
             # print(f"合法手: {moves}")
-            cpus = [cpu1,cpu2]
-            action = random.choice(cpus).get_action(board, moves)
+            # cpus = [cpu1,cpu2,cpu3]
+            # action = random.choice(cpus).get_action(board, moves)
+            action = min_max.getAction(board,player)
             # 合法手から選択
            
 
@@ -197,24 +288,27 @@ def play_single_episode(ai, cpu1,cpu2,size,loss_history):
                             # OthelloLogic.printBoard(board)
                             print("引き分け")
                             
-                        update_weights_func(reward, board, ai,loss_history)
+                        update_weights_func(reward, board, ai,loss_history,-player)
+
+
                         
                         # ai.episode_memory[-1] = (ai.episode_memory[-1][0], ai.episode_memory[-1][1], reward)
                         # update_weights_monte_carlo(ai)
-                        # OthelloLogic.printBoard(board)
+                        OthelloLogic.printBoard(board)
                         return result
                     
             
             # 更新処理
-            reward = calculate_intermediate_reward(board, -player)
-            update_weights_func(reward, board, ai,loss_history)
+            reward = hybrid_evaluation(board, -player)
+            update_weights_func(reward, board, ai,loss_history,-player)
+            OthelloLogic.printBoard(board)
 
 
         # ここから下は共通処理
         # 盤面表示
         # OthelloLogic.printBoard(board)
 
-        # プレイヤー交代
+            # プレイヤー交代
         player *= -1
 
     # print("ゲーム終了")
@@ -238,10 +332,10 @@ def main():
     win_count = 0  # 勝利数カウント
     draw_count = 0  # 引き分け数カウント
 
-    initial_tmp = 1.0  # 初期温度
+    initial_tmp = 0.08  # 初期温度
     min_tmp = 0.08   # 最小温度
     decay_steps = 2500  # 温度が最小値に到達するまでのゲーム数
-    tau = 1000  # 温度の減少スケジュールを調整するパラメータ
+    
 
       # カウント変数
     interval_win_count = 0  # 100ゲーム内の勝利数
@@ -251,11 +345,13 @@ def main():
     
     
     ai = OthelloAction.OthelloQLearning()
+    ai.load_weights()
     naive = OthelloAction.Naive_ai()
     random_ai = OthelloAction.Random_ai()
     max_stone = OthelloAction.Max_stone()
+    min_stone = OthelloAction.min_stone()
     for game_num in range(1, games_to_play + 1):            
-            
+            input()
             if game_num <= decay_steps:
                 # 線形減少スケジュール
                 tmp = initial_tmp - (initial_tmp - min_tmp) * (game_num / decay_steps)
@@ -269,7 +365,7 @@ def main():
             # ai.temperature = calculate_exponential_temperature(game_num, initial_tmp, min_tmp, tau)
 
             
-            result = play_single_episode(ai,max_stone,max_stone,size,loss_history)
+            result = play_single_episode(ai,naive,max_stone,min_stone,size,loss_history)
             print("ゲーム結果")
             print(result)
             if result == 1:
@@ -292,6 +388,8 @@ def main():
             if game_num % report_interval == 0:
                 print(f"ゲーム数: {game_num}, 勝率: {win_count / game_num:.2%}, 引き分け率: {draw_count / game_num:.2%}")
 
+    # 重みの保存
+    ai.save_weights()
     weights_array = np.array(ai.weights)
 
     # 各次元ごとの平均 (全行動での64次元平均)

@@ -2,7 +2,7 @@ import random
 import numpy as np
 import copy
 import OthelloLogic
-
+import os
 """
 引数について
 
@@ -36,6 +36,7 @@ moves:現在の合法手の一覧
 
 # 	return moves[index]
 
+
 class OthelloQLearning:
 	def __init__(self, feature_dim =64, action_dim = 61, alpha = 0.3, gamma = 0.9):
 		self.feature_dim = feature_dim
@@ -45,8 +46,10 @@ class OthelloQLearning:
 		self.temperature = 1.0
 		
 		# 重みの初期化(61個の行動の重みを64次元の特徴量で表現)
+		self.weights = self.initialize_weights()
+		print(self.weights)
 		# self.weights = np.random.uniform(-0.1, 0.1, (self.action_dim, self.feature_dim))
-		self.weights = np.full((self.action_dim, self.feature_dim), 0.05)
+		# self.weights = np.full((self.action_dim, self.feature_dim), 0.05)
 		# self.weights = np.random.uniform(-0.1, 0.1, (self.action_dim, self.feature_dim))
 		# 前回の状態と行動
 		self.current_feature = None
@@ -55,6 +58,32 @@ class OthelloQLearning:
 
 		self.episode_memory = []  # エピソード中の状態・行動・報酬を記録
 	
+	def initialize_weights(self):
+		return np.full((self.action_dim, self.feature_dim), 0.05)
+	
+	def load_weights(self,filepath = "weights.npy"):
+		try:
+			if os.path.exists(filepath):
+				self.weights = np.load(filepath)
+				print("重みをロードしました")
+			else:
+				print("重みファイルが存在しないので新規作成します")
+				self.weights = self.initialize_weights()	
+
+		except Exception as e:
+			print(f"重みのロードに失敗しました: {e}")
+			self.weights = self.initialize_weights()
+
+
+	def save_weights(self,filepath = "weights.npy"):
+		try:
+			np.save(filepath, self.weights)
+			print("重みを保存しました")
+		except Exception as e:
+			print(f"重みの保存に失敗しました: {e}")
+	
+
+
 	def get_feature(self, board):
 		#盤面から特徴量を取得
 		# 64次元の特徴量を返す
@@ -100,8 +129,10 @@ class OthelloQLearning:
 	
 	def select_action(self, board_feature, moves):
 		"""ボルツマン選択で行動を選択"""
+		# print("Boltzmannよびだされました")
 
 		if not moves:
+			print(f"選択できる行動がありません")
 			return "pass"
 		
 		# Q値の計算
@@ -126,6 +157,8 @@ class OthelloQLearning:
 
 		# 確率分布に基づいて行動を選択
 		action_index = np.random.choice(len(moves), p=probability)
+		print(f"選択できる行動: {moves}")
+		print(f"選択された行動: {moves[action_index]}")
 		return moves[action_index]
 
 		
@@ -159,6 +192,14 @@ class OthelloQLearning:
 		self.current_action = action
 		self.current_q = self.calc_q(board_feature, action)
 
+		return action
+	
+	def get_learned_action(self, board, moves):
+		# 学習済みの行動を選択
+		board_feature = self.get_feature(board)
+		q_values = [self.calc_q(board_feature, action) for action in moves]
+		action = moves[np.argmax(q_values)]
+		
 		return action
 	
 
@@ -249,7 +290,26 @@ class Max_stone:
 		return next_move
 
 
+class min_stone:
+	def __init__(self):
+		pass
 
+	def get_action(self, board, moves):
+		min_stones = 64
+		next_moves = None
+		board_np = np.array(board)
+
+		for move in moves:
+			next_board = OthelloLogic.execute(copy.deepcopy(board_np), move, 1, 8)
+			next_board_np = np.array(next_board)
+
+			stone_count = np.sum(next_board_np == 1)
+
+			if stone_count < min_stones:
+				min_stones = stone_count
+				next_move = move
 		
+		return next_move
+
 
 		

@@ -3,3 +3,4 @@ __pycache__
 
 # Ignore .api file containing API keys
 .api_token
+weights.npy

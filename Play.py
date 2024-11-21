@@ -3,6 +3,11 @@ import json
 import OthelloAction
 import AuthCheck
 import OthelloLogic
+import numpy as np
+import random
+import copy
+import os
+import OthelloAction
 
 base_url = "http://tdu-othello.com/api/"
 headers = AuthCheck.auth_check(base_url)
@@ -23,6 +28,16 @@ player = data['player']
 board = []
 payload = {}
 
+count_num = 0
+
+ai = OthelloAction.OthelloQLearning()
+ai.temperature = 0.08
+ai.load_weights()
+count_num+= 1
+print(count_num)
+print("AIの重みを読み込みました。")
+print("ai.temperature:{}".format(ai.temperature))
+print("ai.weights:{}".format(ai.weights))
 
 if(player == 1):
     payload = {'player':player}
@@ -40,8 +55,8 @@ else:
             board[x][y] = rev_board[x][y] * -1
     moves = json.loads(data['moves'])
 
-
-action = json.dumps(OthelloAction.getAction(board,moves))
+print(f"重み{ai.weights}")
+action = json.dumps(ai.get_learned_action(board,moves))
 payload = {'action' : action,'player':player}
 
 while(True):
@@ -69,6 +84,7 @@ while(True):
     	board = json.loads(data['board'])
 
     moves = json.loads(data['moves'])
-    action = json.dumps(OthelloAction.getAction(board,moves))
+    print(f"重み{ai.weights}")
+    action = json.dumps(ai.get_learned_action(board,moves))
     payload = {'action' : action,'player':player}
 

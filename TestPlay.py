@@ -1,7 +1,6 @@
 import OthelloAction
 import OthelloLogic
-from OthelloAction import OthelloQLearning
-
+import min_max
 #sizeを変更することでテストプレイする盤面の大きさを変更できます。
 #size = 4
 #size = 6
@@ -13,47 +12,32 @@ board[int(size/2)][int(size/2)-1]=-1;
 board[int(size/2)-1][int(size/2)]=-1;
 board[int(size/2)][int(size/2)]=1;
 
-ai = OthelloQLearning()
+ai = OthelloAction.OthelloQLearning()
 
-player =-1
+ai.load_weights()
+print("AIの重みを読み込みました。")
+print(f"重み{ai.weights}")
+player = -1
 moves = OthelloLogic.getMoves(board,player,size)
 while(True):
-	n = input()
 	if(player == -1):
-		board_reversed = OthelloLogic.getReverseboard(board)
-		action = OthelloAction.getAction(board_reversed,moves)
+		action = ai.get_learned_action(OthelloLogic.getReverseboard(board),moves)
 	else:
-		action = OthelloAction.getAction(board,moves)
-		# 相手が打ったとして更新処理をする
-	
-	
+		action = min_max.getAction(board,moves)
 	if(not (action in moves)):
 		print(board)
 		print('合法手ではない手が打たれました' + action)
 		exit()
 	board = OthelloLogic.execute(board,action,player,size)
 	OthelloLogic.printBoard(board)
-
-	# moves=次のプレイヤーの合法手
+	print('現在の合法手一覧')
+	print(moves)
 	moves = OthelloLogic.getMoves(board,player*-1,size)
 	if(len(moves) == 0):
-		# 次のプレイヤーが打つ手がない場合(next_next_movesは次の次のプレイヤーの合法手)
-		next_next_moves = OthelloLogic.getMoves(board,player,size)
-		if not next_next_moves:
+		moves = OthelloLogic.getMoves(board,player,size)
+		if(len(moves) == 0):
 			break
-		
-		# もし次のプレイやが自分の場合で打つ手がない場合はそのままpass対応しているため、何もしない
-		elif (player*-1 == -1):
-			player = player * -1
-		# 相手をスキップ
-		else:
-			moves = next_next_moves
-			player = player
-	
-	# 次のプレイヤーに交代
 	else:
 		player = player * -1
-
-		
 
 print('正常に終了しました。')		
